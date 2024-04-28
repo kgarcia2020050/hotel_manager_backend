@@ -1,7 +1,11 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using MySqlConnector;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddTransient(x =>
+  new MySqlConnection(builder.Configuration.GetConnectionString("Default")));
 
 // Add services to the container.
 
@@ -14,16 +18,17 @@ builder.Services.AddAuthentication(options =>
     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
 }).AddJwtBearer(o =>
 {
+    o.RequireHttpsMetadata = false;
+    o.SaveToken = false;
     o.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey
         (System.Text.Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
-        ValidateIssuer = true,
-        ValidateAudience = true,
+        ValidateIssuer = false,
+        ValidateAudience = false,
         ValidateLifetime = false,
-        ValidateIssuerSigningKey = true
+        ValidateIssuerSigningKey = true,
+        ClockSkew = TimeSpan.Zero
     };
 });
 builder.Services.AddEndpointsApiExplorer();
