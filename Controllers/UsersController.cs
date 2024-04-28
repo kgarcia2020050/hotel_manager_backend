@@ -1,8 +1,13 @@
-﻿using ApiHoteleria.Models;
+﻿using ApiHoteleria.Dtos;
+using ApiHoteleria.Models;
+using ApiHoteleria.Services.Interfaces;
+using Dapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using MySqlConnector;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Security.Claims;
 using System.Text;
 
@@ -21,51 +26,110 @@ namespace ApiHoteleria.Controllers
         }
 
         [HttpPost]
-        public IActionResult Login([FromBody] Users login)
+        [Route("login")]
+        public IActionResult Login([FromBody] Login login, [FromServices] MySqlConnection connection)
         {
             IActionResult response = Unauthorized();
-            var user = AuthenticateUser(login);
 
-            if (user != null)
+            var existingUser = connection.Query<Users>("SELECT u.User_ID, u.Username, u.Password, p.Email " +
+                "FROM user u INNER JOIN person p ON p.User_ID = u.User_ID WHERE p.Email " +
+                "= @email", new { login.email }).FirstOrDefault();
+            if (existingUser == null)
             {
-                var tokenString = GenerateJSONWebToken(user);
-                response = Ok(new { token = tokenString });
+                return StatusCode((int)HttpStatusCode.NotFound, "User not found");
+            }
+            System.Diagnostics.Debug.WriteLine(existingUser.ToString());
+
+            if(BCrypt.Net.BCrypt.EnhancedVerify(login.password,existingUser.password))
+            {
+                var user = AuthenticateUser(existingUser, login);
+                if (user != null)
+                {
+                    return Ok(new { token = GenerateJSONWebToken(existingUser) });
+                }
+
+            }
+            else
+            {
+                return StatusCode((int)HttpStatusCode.Unauthorized, "Invalid credentials");
             }
 
             return response;
         }
 
 
+
+        [HttpPost]
+        [Route("register")]
+        public IActionResult Register([FromBody] Register login, [FromServices] MySqlConnection connection)
+        {
+            try
+            {
+                IActionResult response = Unauthorized();
+
+                var username = connection.Query<string>("SELECT Username FROM User WHERE Username" +
+                    "= @username", new { login.username }).FirstOrDefault();
+                if (username != null)
+                {
+                    return StatusCode((int)HttpStatusCode.NotFound, "Username already exists!");
+                }
+
+                var userEmail = connection.Query<string>("SELECT Email FROM Person WHERE Email" +
+                                   "= @email", new { login.email }).FirstOrDefault();
+
+                if (userEmail != null)
+                {
+                    return StatusCode((int)HttpStatusCode.NotFound, "Email already exists!");
+                }
+
+                login.password = BCrypt.Net.BCrypt.EnhancedHashPassword(login.password);
+                connection.Execute("INSERT INTO user(Username, Password, Role) VALUES(@username, @password, @role)", new { login.username, login.password, login.role });
+
+                int userId = connection.QuerySingle<int>("SELECT User_ID FROM user order by User_ID DESC LIMIT 1");
+
+                connection.Execute("INSERT INTO person(User_ID, Name, Identity_Document, " +
+                    "Phone, Email, Address) " +
+                    "VALUES(@userId, @name, @identity_document, @phone, @email, @address)"
+                    , new { userId, login.name, login.identity_document, login.phone, login.email, login.address });
+
+                response = Ok("User created successfully!");
+
+                return response;
+            }
+            catch (Exception e)
+            {
+                return StatusCode((int)HttpStatusCode.InternalServerError, "An error has ocurred: " +e.Message);
+            }
+ 
+        }
+
+
         private string GenerateJSONWebToken(Users userInfo)
         {
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
-            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
             var claims = new[] {
-        new Claim(JwtRegisteredClaimNames.Sub, userInfo.name),
+        new Claim(JwtRegisteredClaimNames.UniqueName, userInfo.username),
         new Claim(JwtRegisteredClaimNames.Email, userInfo.email),
+        new Claim(JwtRegisteredClaimNames.Sub, userInfo.user_id.ToString()),
     };
-
-
-            var token = new JwtSecurityToken(_config["Jwt:Issuer"],
-              _config["Jwt:Issuer"],
-              claims,
-              expires: DateTime.Now.AddMinutes(60),
-              signingCredentials: credentials);
-
-            Console.WriteLine(token);
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            var jwtToken = new JwtSecurityToken(
+                claims: claims,
+                notBefore: DateTime.UtcNow,
+                expires: DateTime.UtcNow.AddDays(30),
+                signingCredentials: new SigningCredentials(
+                    new SymmetricSecurityKey(
+                       Encoding.UTF8.GetBytes(_config["Jwt:Key"])
+                        ),
+                    SecurityAlgorithms.HmacSha256Signature)
+                );
+            return new JwtSecurityTokenHandler().WriteToken(jwtToken);
         }
 
-        private Users AuthenticateUser(Users login)
+       private Users AuthenticateUser(Users login, Login person)
         {
             Users user = null;
-
-            //Validate the User Credentials
-            //Demo Purpose, I have Passed HardCoded User Information
-                user = new Users { name = login.name, email =login.email };
+            user = new Users { username = login.username,user_id=login.user_id, email=person.email };
             return user;
         }
+      
     }
 }

@@ -1,7 +1,11 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using MySqlConnector;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddTransient(x =>
+  new MySqlConnection(builder.Configuration.GetConnectionString("Default")));
 
 // Add services to the container.
 
