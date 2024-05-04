@@ -18,6 +18,8 @@ namespace ApiHoteleria.Controllers
         [Route("create")]
         public IActionResult Create([FromBody] Hotel hotel, [FromServices] MySqlConnection connection)
         {
+           string message = "Hotel created successfully!";
+            int statusCode = (int)HttpStatusCode.OK;
             try
             {
                 IActionResult response = Unauthorized();
@@ -25,7 +27,9 @@ namespace ApiHoteleria.Controllers
                 // valida si vienen los campos necesarios para la creacion del hotel
                 if (hotel.Name== null || hotel.Address==null || hotel.Phone== null || hotel.Email==null)
                 {
-                    return StatusCode((int)HttpStatusCode.Forbidden,"Incomplete request");
+                    statusCode = (int)HttpStatusCode.Forbidden;
+                    message = "Incomplete request";
+                    return StatusCode((int)HttpStatusCode.Forbidden,new {statusCode, message});
 
                 }
 
@@ -37,18 +41,23 @@ namespace ApiHoteleria.Controllers
                 // si ya existe, retorna un error
                 if (existingHotel != null)
                 {
-                    return StatusCode((int)HttpStatusCode.NotFound, "Hotel email already exists!");
+                    statusCode = (int)HttpStatusCode.NotFound;
+                    message = "Hotel email already exists!";
+                    return StatusCode((int)HttpStatusCode.NotFound,new {statusCode, message});
                 }
 
                 connection.Execute("INSERT INTO hotel(Name, Address, Phone, Email) VALUES(@name, @address, @phone, @email)", new { hotel.Name, hotel.Address, hotel.Phone, hotel.Email });
 
-                response = Ok("Hotel created successfully!");
+                response = Ok(new {statusCode, message});
 
                 return response;
             }
             catch (Exception e)
             {
-                return StatusCode((int)HttpStatusCode.InternalServerError, "An error has ocurred: " + e.Message);
+
+                message = "An error has ocurred: " + e.Message;
+                statusCode = (int)HttpStatusCode.InternalServerError;
+                return StatusCode((int)HttpStatusCode.InternalServerError, new {statusCode, message});
             }
 
         }
@@ -58,6 +67,8 @@ namespace ApiHoteleria.Controllers
         [Route("update")]
         public IActionResult Update([FromBody] Hotel hotel, [FromServices] MySqlConnection connection)
         {
+            string message = "Hotel updated successfully!";
+            int statusCode = (int)HttpStatusCode.OK;
             try
             {
                 IActionResult response = Unauthorized();
@@ -66,7 +77,9 @@ namespace ApiHoteleria.Controllers
                 if (hotel.Name == null || hotel.Address == null || hotel.Phone == null ||
                     hotel.Email == null || String.IsNullOrEmpty(hotel.Hotel_ID.ToString()))
                 {
-                    return StatusCode((int)HttpStatusCode.Forbidden, "Incomplete request");
+                    statusCode = (int)HttpStatusCode.Forbidden;
+                    message = "Incomplete request";
+                    return StatusCode((int)HttpStatusCode.Forbidden, new {statusCode, message});
 
                 }
 
@@ -79,7 +92,9 @@ namespace ApiHoteleria.Controllers
                 // si no existe, retorna un error
                 if (findHotel == null)
                 {
-                    return StatusCode((int)HttpStatusCode.NotFound, "Hotel does not exist!");
+                    statusCode = (int)HttpStatusCode.NotFound;
+                    message = "Hotel does not exist!";
+                    return StatusCode((int)HttpStatusCode.NotFound,new {statusCode, message});
                 }
 
                 System.Diagnostics.Debug.WriteLine(findHotel.ToString());
@@ -92,19 +107,23 @@ namespace ApiHoteleria.Controllers
                 // si ya existe, retorna un error
                 if (existingHotel != null)
                 {
-                    return StatusCode((int)HttpStatusCode.NotFound, "Hotel email already exists!");
+                    statusCode = (int)HttpStatusCode.NotFound;
+                    message = "Hotel email already exists!";
+                    return StatusCode((int)HttpStatusCode.NotFound, new {statusCode, message});
                 }
 
                 connection.Execute("UPDATE hotel SET Name = @name, Address = @address, Phone = @phone, Email = @email " +
                     "WHERE Hotel_ID = @hotel_id", new { hotel.Name, hotel.Address, hotel.Phone, hotel.Email, hotel.Hotel_ID });
 
-                response = Ok("Hotel updated successfully!");
+                response = Ok(new {statusCode, message});
 
                 return response;
             }
             catch (Exception e)
             {
-                return StatusCode((int)HttpStatusCode.InternalServerError, "An error has ocurred: " + e.Message);
+                message = "An error has ocurred: " + e.Message;
+                statusCode = (int)HttpStatusCode.InternalServerError;
+                return StatusCode((int)HttpStatusCode.InternalServerError,new {statusCode, message});
             }
 
         }
@@ -114,19 +133,23 @@ namespace ApiHoteleria.Controllers
         [Route("get")]
         public IActionResult Get([FromServices] MySqlConnection connection)
         {
+            string message = "Hotels retrieved successfully!";
+            int statusCode = (int)HttpStatusCode.OK;
             try
             {
                 IActionResult response = Unauthorized();
 
                 var hotels = connection.Query<Hotel>("SELECT * FROM hotel" ).ToList();
 
-                response = Ok(hotels);
+                response = Ok(new {statusCode, message, hotels});
 
                 return response;
             }
             catch (Exception e)
             {
-                return StatusCode((int)HttpStatusCode.InternalServerError, "An error has ocurred: " + e.Message);
+                message = "An error has ocurred: " + e.Message;
+                statusCode = (int)HttpStatusCode.InternalServerError;
+                return StatusCode((int)HttpStatusCode.InternalServerError,new {statusCode, message});
             }
 
         }

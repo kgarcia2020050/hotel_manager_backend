@@ -29,32 +29,47 @@ namespace ApiHoteleria.Controllers
         [Route("login")]
         public IActionResult Login([FromBody] Login login, [FromServices] MySqlConnection connection)
         {
-            IActionResult response = Unauthorized();
-
-            var existingUser = connection.Query<Users>("SELECT u.User_ID, u.Username, u.Password, p.Email " +
-                "FROM user u INNER JOIN person p ON p.User_ID = u.User_ID WHERE p.Email " +
-                "= @email", new { login.email }).FirstOrDefault();
-            if (existingUser == null)
+            string message = "Login success!";
+            int statusCode = (int)HttpStatusCode.OK;
+            try
             {
-                return StatusCode((int)HttpStatusCode.NotFound, "User not found");
-            }
-            System.Diagnostics.Debug.WriteLine(existingUser.ToString());
+                IActionResult response = Unauthorized();
 
-            if(BCrypt.Net.BCrypt.EnhancedVerify(login.password,existingUser.password))
-            {
-                var user = AuthenticateUser(existingUser, login);
-                if (user != null)
+                var existingUser = connection.Query<Users>("SELECT u.User_ID, u.Username, u.Password, p.Email " +
+                    "FROM user u INNER JOIN person p ON p.User_ID = u.User_ID WHERE p.Email " +
+                    "= @email", new { login.email }).FirstOrDefault();
+                if (existingUser == null)
                 {
-                    return Ok(new { token = GenerateJSONWebToken(existingUser) });
+                    message = "User not found";
+                    statusCode = (int)HttpStatusCode.NotFound;
+                    return StatusCode((int)HttpStatusCode.NotFound, new {statusCode, message});
                 }
+                System.Diagnostics.Debug.WriteLine(existingUser.ToString());
 
+                if (BCrypt.Net.BCrypt.EnhancedVerify(login.password, existingUser.password))
+                {
+                    var user = AuthenticateUser(existingUser, login);
+                    if (user != null)
+                    {
+                        return Ok(new {statusCode, message, token = GenerateJSONWebToken(existingUser) });
+                    }
+                }
+                else
+                {
+                    message = "Invalid credentials";
+                    statusCode = (int)HttpStatusCode.Unauthorized;
+                    return StatusCode((int)HttpStatusCode.Unauthorized, "Invalid credentials");
+                }
+                message = "Invalid credentials";
+                statusCode = (int)HttpStatusCode.Unauthorized;
+                return response;
             }
-            else
+            catch(Exception e)
             {
-                return StatusCode((int)HttpStatusCode.Unauthorized, "Invalid credentials");
+                message = "An error has ocurred: " + e.Message;
+                statusCode = (int)HttpStatusCode.InternalServerError;
+                return StatusCode((int)HttpStatusCode.InternalServerError,new {statusCode, message});
             }
-
-            return response;
         }
 
 
@@ -63,6 +78,8 @@ namespace ApiHoteleria.Controllers
         [Route("register")]
         public IActionResult Register([FromBody] Register login, [FromServices] MySqlConnection connection)
         {
+            string message = "User created successfully!";
+            int statusCode = (int)HttpStatusCode.OK;
             try
             {
                 IActionResult response = Unauthorized();
@@ -71,7 +88,9 @@ namespace ApiHoteleria.Controllers
                     "= @username", new { login.username }).FirstOrDefault();
                 if (username != null)
                 {
-                    return StatusCode((int)HttpStatusCode.NotFound, "Username already exists!");
+                    statusCode = (int)HttpStatusCode.NotFound;
+                    message = "Username already exists!";
+                    return StatusCode((int)HttpStatusCode.NotFound,new {statusCode, message});
                 }
 
                 var userEmail = connection.Query<string>("SELECT Email FROM Person WHERE Email" +
@@ -79,7 +98,9 @@ namespace ApiHoteleria.Controllers
 
                 if (userEmail != null)
                 {
-                    return StatusCode((int)HttpStatusCode.NotFound, "Email already exists!");
+                    statusCode = (int)HttpStatusCode.NotFound;
+                    message = "Email already exists!";
+                    return StatusCode((int)HttpStatusCode.NotFound, new {statusCode, message});
                 }
 
                 login.password = BCrypt.Net.BCrypt.EnhancedHashPassword(login.password);
@@ -92,13 +113,15 @@ namespace ApiHoteleria.Controllers
                     "VALUES(@userId, @name, @identity_document, @phone, @email, @address)"
                     , new { userId, login.name, login.identity_document, login.phone, login.email, login.address });
 
-                response = Ok("User created successfully!");
+                response = Ok(new {statusCode, message});
 
                 return response;
             }
             catch (Exception e)
             {
-                return StatusCode((int)HttpStatusCode.InternalServerError, "An error has ocurred: " +e.Message);
+                message = "An error has ocurred: " + e.Message;
+                statusCode = (int)HttpStatusCode.InternalServerError;
+                return StatusCode((int)HttpStatusCode.InternalServerError,new {statusCode, message});
             }
  
         }
