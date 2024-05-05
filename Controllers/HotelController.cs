@@ -137,6 +137,7 @@ namespace ApiHoteleria.Controllers
             int statusCode = (int)HttpStatusCode.OK;
             try
             {
+
                 IActionResult response = Unauthorized();
 
                 var hotels = connection.Query<Hotel>("SELECT * FROM hotel" ).ToList();

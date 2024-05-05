@@ -137,7 +137,7 @@ namespace ApiHoteleria.Controllers
             var jwtToken = new JwtSecurityToken(
                 claims: claims,
                 notBefore: DateTime.UtcNow,
-                expires: DateTime.UtcNow.AddDays(30),
+                expires: DateTime.UtcNow.AddMinutes(60),
                 signingCredentials: new SigningCredentials(
                     new SymmetricSecurityKey(
                        Encoding.UTF8.GetBytes(_config["Jwt:Key"])
