@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using MySqlConnector;
 
 var builder = WebApplication.CreateBuilder(args);
-
+builder.Services.AddControllers(options => options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true);
 builder.Services.AddTransient(x =>
   new MySqlConnection(builder.Configuration.GetConnectionString("Default")));
 
