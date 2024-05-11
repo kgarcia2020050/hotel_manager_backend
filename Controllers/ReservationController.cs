@@ -129,7 +129,6 @@ namespace ApiHoteleria.Controllers
             catch (Exception e)
             {
                 System.Diagnostics.Debug.WriteLine(e);
-
                 message = "An error has ocurred: " + e.Message;
                 statusCode = (int)HttpStatusCode.InternalServerError;
                 return StatusCode((int)HttpStatusCode.InternalServerError, new { statusCode, message });
@@ -235,7 +234,6 @@ namespace ApiHoteleria.Controllers
             catch (Exception e)
             {
                 System.Diagnostics.Debug.WriteLine(e);
-
                 message = "An error has ocurred: " + e.Message;
                 statusCode = (int)HttpStatusCode.InternalServerError;
                 return StatusCode((int)HttpStatusCode.InternalServerError, new { statusCode, message });
@@ -246,12 +244,34 @@ namespace ApiHoteleria.Controllers
         [Authorize]
         [HttpDelete]
         [Route("delete")]
-        public IActionResult Delete([FromBody] int reservation_id, [FromServices] MySqlConnection connection)
+        public IActionResult Delete(int reservation_id, [FromServices] MySqlConnection connection)
         {
             string message = "Reservation deleted successfully!";
             int statusCode = (int)HttpStatusCode.OK;
             try
             {
+
+
+                var authorization = Request.Headers[HeaderNames.Authorization];
+
+                string clientId = getClientIdFromToken(authorization.ToString().Replace("Bearer ", ""));
+
+                if (clientId == null)
+                {
+                    statusCode = (int)HttpStatusCode.Forbidden;
+                    message = "Invalid token";
+                    return StatusCode((int)HttpStatusCode.Forbidden, new { statusCode, message });
+                }
+
+                var user = connection.Query<Users>("SELECT * FROM user WHERE User_ID = @user_id", new { user_id = clientId }).FirstOrDefault();
+
+                if (user == null)
+                {
+                    statusCode = (int)HttpStatusCode.NotFound;
+                    message = "User not found";
+                    return StatusCode((int)HttpStatusCode.NotFound, new { statusCode, message });
+                }
+
                 IActionResult response = Unauthorized();
 
                 if(String.IsNullOrEmpty(reservation_id.ToString()))
@@ -279,7 +299,144 @@ namespace ApiHoteleria.Controllers
             catch(Exception e)
             {
                 System.Diagnostics.Debug.WriteLine(e);
+                message = "An error has ocurred: " + e.Message;
+                statusCode = (int)HttpStatusCode.InternalServerError;
+                return StatusCode((int)HttpStatusCode.InternalServerError, new { statusCode, message });
+            }
 
+        }
+
+
+        [Authorize]
+        [HttpGet]
+        [Route("reservation")]
+        public IActionResult Reservation([FromQuery(Name = "client_id")] int client_id, [FromServices] MySqlConnection connection)
+        {
+            string message = "Reservation fetched successfully!";
+            int statusCode = (int)HttpStatusCode.OK;
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("ID ES "+client_id);
+
+                IActionResult response = Unauthorized();
+
+                var authorization = Request.Headers[HeaderNames.Authorization];
+
+                string clientId = getClientIdFromToken(authorization.ToString().Replace("Bearer ", ""));
+
+                if (clientId == null)
+                {
+                    statusCode = (int)HttpStatusCode.Forbidden;
+                    message = "Invalid token";
+                    return StatusCode((int)HttpStatusCode.Forbidden, new { statusCode, message });
+                }
+
+                var user = connection.Query<Users>("SELECT * FROM user WHERE User_ID = @user_id", new { user_id = clientId }).FirstOrDefault();
+
+                if (user == null)
+                {
+                    statusCode = (int)HttpStatusCode.NotFound;
+                    message = "User not found";
+                    return StatusCode((int)HttpStatusCode.NotFound, new { statusCode, message });
+                }
+
+                var reservation_detail = new List<Reservation>();
+                System.Diagnostics.Debug.WriteLine("ID ES " + client_id);
+
+                if (client_id != 0)
+                {
+                    System.Diagnostics.Debug.WriteLine("OBTIENE ESPECIFICOS");
+
+                    reservation_detail = connection.Query<Reservation>("SELECT * FROM reservation WHERE Client_ID = @client_id", new { client_id }).ToList();
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("OBTIENE TODOS");
+
+                    reservation_detail = connection.Query<Reservation>("SELECT * FROM reservation").ToList();
+                }
+
+                if (reservation_detail == null || reservation_detail.Count == 0)
+                {
+                    statusCode = (int)HttpStatusCode.NotFound;
+                    message = "Reservations not found";
+                    return StatusCode((int)HttpStatusCode.NotFound, new { statusCode, message });
+                }
+
+
+                response = Ok(new { statusCode, message, data = reservation_detail });
+
+                return response;
+            }
+            catch (Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine(e);
+                message = "An error has ocurred: " + e.Message;
+                statusCode = (int)HttpStatusCode.InternalServerError;
+                return StatusCode((int)HttpStatusCode.InternalServerError, new { statusCode, message });
+            }
+
+        }
+
+
+        [Authorize]
+        [HttpGet]
+        [Route("details")]
+        public IActionResult details([FromQuery(Name = "reservation_id")] int reservation_id, [FromServices] MySqlConnection connection)
+        {
+            string message = "Details fetched successfully!";
+            int statusCode = (int)HttpStatusCode.OK;
+            try
+            {
+                IActionResult response = Unauthorized();
+
+                var authorization = Request.Headers[HeaderNames.Authorization];
+
+                string clientId = getClientIdFromToken(authorization.ToString().Replace("Bearer ", ""));
+
+                if (clientId == null)
+                {
+                    statusCode = (int)HttpStatusCode.Forbidden;
+                    message = "Invalid token";
+                    return StatusCode((int)HttpStatusCode.Forbidden, new { statusCode, message });
+                }
+
+                var user = connection.Query<Users>("SELECT * FROM user WHERE User_ID = @user_id", new { user_id = clientId }).FirstOrDefault();
+
+                if (user == null)
+                {
+                    statusCode = (int)HttpStatusCode.NotFound;
+                    message = "User not found";
+                    return StatusCode((int)HttpStatusCode.NotFound, new { statusCode, message });
+                }
+
+
+                var reservation_detail  = new List<Details>();
+
+                if (reservation_id == 0)
+                {
+                    reservation_detail = connection.Query<Details>("SELECT * FROM reservation_detail").ToList();
+                }
+                else
+                {
+                    reservation_detail = connection.Query<Details>("SELECT * FROM reservation_detail WHERE Reservation_ID = @reservation_id", new { reservation_id }).ToList();
+                }
+
+
+                if (reservation_detail == null || reservation_detail.Count == 0)
+                {
+                    statusCode = (int)HttpStatusCode.NotFound;
+                    message = "Details not found";
+                    return StatusCode((int)HttpStatusCode.NotFound, new { statusCode, message });
+                }
+
+
+                response = Ok(new { statusCode, message, data = reservation_detail });
+
+                return response;
+            }catch(Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine(e);
                 message = "An error has ocurred: " + e.Message;
                 statusCode = (int)HttpStatusCode.InternalServerError;
                 return StatusCode((int)HttpStatusCode.InternalServerError, new { statusCode, message });
