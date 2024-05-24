@@ -190,7 +190,7 @@ namespace ApiHoteleria.Controllers
                 }
 
 
-                var availableRooms = connection.Query<Rooms>("SELECT rd.Room_ID, r.Room_Number, r.Status,  FROM reservation_detail rd " +
+                var availableRooms = connection.Query<Rooms>("SELECT rd.Room_ID, r.Room_Number, r.Status  FROM reservation_detail rd " +
                     "INNER JOIN room r ON r.Room_ID = rd.Room_ID " +
                     "INNER JOIN reservation rv ON rv.Reservation_ID = rd.Reservation_ID " +
                     "INNER JOIN room_type rt ON rt.Type_ID = r.Type_ID  WHERE rv.Client_ID " +
