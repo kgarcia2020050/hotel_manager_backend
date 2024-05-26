@@ -254,15 +254,13 @@ namespace ApiHoteleria.Controllers
 
         [Authorize]
         [HttpDelete]
-        [Route("delete")]
+        [Route("deleteReservation")]
         public IActionResult Delete(int reservation_id, [FromServices] MySqlConnection connection)
         {
             string message = "Reservation deleted successfully!";
             int statusCode = (int)HttpStatusCode.OK;
             try
             {
-
-
                 var authorization = Request.Headers[HeaderNames.Authorization];
 
                 string clientId = getClientIdFromToken(authorization.ToString().Replace("Bearer ", ""));
@@ -292,22 +290,69 @@ namespace ApiHoteleria.Controllers
                     return StatusCode((int)HttpStatusCode.Forbidden, new { statusCode, message });
                 }
 
-                var reservation_detail = connection.Query<string>("SELECT * FROM reservation_detail WHERE Reservation_ID = @reservation_id", new { reservation_id }).FirstOrDefault();
-
-                if(reservation_detail == null)
-                {
-                    statusCode = (int)HttpStatusCode.NotFound;
-                    message = "Reservation not found";
-                    return StatusCode((int)HttpStatusCode.NotFound, new { statusCode, message });
-                }
-
                 connection.Execute("DELETE FROM reservation_detail WHERE Reservation_ID = @reservation_id", new { reservation_id });
+                connection.Execute("DELETE FROM reservation WHERE Reservation_ID = @reservation_id", new { reservation_id });
 
                 response = Ok(new { statusCode, message });
 
                 return response;
             }
             catch(Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine(e);
+                message = "An error has ocurred: " + e.Message;
+                statusCode = (int)HttpStatusCode.InternalServerError;
+                return StatusCode((int)HttpStatusCode.InternalServerError, new { statusCode, message });
+            }
+
+        }
+
+
+        [Authorize]
+        [HttpDelete]
+        [Route("deleteRoom")]
+        public IActionResult DeleteRoom(int room_id, [FromServices] MySqlConnection connection)
+        {
+            string message = "Reservation detail deleted successfully!";
+            int statusCode = (int)HttpStatusCode.OK;
+            try
+            {
+                var authorization = Request.Headers[HeaderNames.Authorization];
+
+                string clientId = getClientIdFromToken(authorization.ToString().Replace("Bearer ", ""));
+
+                if (clientId == null)
+                {
+                    statusCode = (int)HttpStatusCode.Forbidden;
+                    message = "Invalid token";
+                    return StatusCode((int)HttpStatusCode.Forbidden, new { statusCode, message });
+                }
+
+                var user = connection.Query<Users>("SELECT * FROM user WHERE User_ID = @user_id", new { user_id = clientId }).FirstOrDefault();
+
+                if (user == null)
+                {
+                    statusCode = (int)HttpStatusCode.NotFound;
+                    message = "User not found";
+                    return StatusCode((int)HttpStatusCode.NotFound, new { statusCode, message });
+                }
+
+                IActionResult response = Unauthorized();
+
+                if (String.IsNullOrEmpty(room_id.ToString()))
+                {
+                    statusCode = (int)HttpStatusCode.Forbidden;
+                    message = "Incomplete request";
+                    return StatusCode((int)HttpStatusCode.Forbidden, new { statusCode, message });
+                }
+
+                connection.Execute("DELETE FROM reservation_detail WHERE Reservation_Detail_ID = @room_id", new { room_id });
+
+                response = Ok(new { statusCode, message });
+
+                return response;
+            }
+            catch (Exception e)
             {
                 System.Diagnostics.Debug.WriteLine(e);
                 message = "An error has ocurred: " + e.Message;
