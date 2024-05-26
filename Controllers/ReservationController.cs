@@ -86,6 +86,17 @@ namespace ApiHoteleria.Controllers
                     return StatusCode((int)HttpStatusCode.NotFound, new { statusCode, message });
                 }
 
+                var existingRoom = connection.Query<Reservation>("SELECT r.Status FROM reservation r" +
+                    "INNER JOIN room rm ON rm.Hotel_ID = r.Hotel_ID" +
+                    "WHERE r.Status = 'Pendiente' AND r.Client_ID = @clientId AND rm.Room_ID = @roomId",new { clientId, roomId = hotel.Room_ID}).ToList();
+
+                if(existingRoom.Count > 0)
+                {
+                    message = "Room already reserved";
+                    statusCode = (int)HttpStatusCode.Forbidden;
+                    return StatusCode((int)HttpStatusCode.Forbidden, new { statusCode, message });
+                }
+
                 var userReservation = connection.Query<Reservation>("SELECT * FROM reservation WHERE Client_ID = @client_id AND Status = 'Pendiente'", new { client_id = clientId }).ToList();
 
                 DateTime fechaUno = Convert.ToDateTime(hotel.Check_In_Date).Date;
