@@ -2,6 +2,7 @@
 using ApiHoteleria.Models;
 using ApiHoteleria.Services.Interfaces;
 using Dapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -153,6 +154,49 @@ namespace ApiHoteleria.Controllers
             user = new Users { username = login.username,user_id=login.user_id, email=person.email };
             return user;
         }
-      
+
+
+
+        [Authorize]
+        [HttpGet]
+        [Route("")]
+        public IActionResult getUsers([FromQuery] int hotel_id, [FromServices] MySqlConnection connection)
+        {
+            string message = "User created successfully!";
+            int statusCode = (int)HttpStatusCode.OK;
+            try
+            {
+                IActionResult response = Unauthorized();
+                List<Persons> users = new List<Persons>();
+                if(hotel_id == 0)
+                {
+                    users = connection.Query<Persons>("SELECT p.*, u.Role" +
+                        "FROM person p" +
+                        "INNER JOIN user u" +
+                        "ON u.User_ID = p.User_ID").ToList();
+                }
+                else
+                {
+                    users = connection.Query<Persons>("SELECT p.*, u.Role, h.Name AS Hotel_Name" +
+                        "FROM person p" +
+                        "INNER JOIN user u" +
+                        "ON u.User_ID = p.User_ID" +
+                        "INNER JOIN hotel h" +
+                        "ON h.Hotel_ID = u.hotel_id WHERE u.hotel_id = @hotel_id", new { hotel_id }).ToList();
+                }
+
+                response = Ok(new { statusCode, message });
+
+                return response;
+            }
+            catch (Exception e)
+            {
+                message = "An error has ocurred: " + e.Message;
+                statusCode = (int)HttpStatusCode.InternalServerError;
+                return StatusCode((int)HttpStatusCode.InternalServerError, new { statusCode, message });
+            }
+
+        }
+
     }
 }

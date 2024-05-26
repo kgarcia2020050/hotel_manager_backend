@@ -4,7 +4,9 @@ using Dapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Net.Http.Headers;
 using MySqlConnector;
+using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 
 namespace ApiHoteleria.Controllers
@@ -13,6 +15,26 @@ namespace ApiHoteleria.Controllers
     [ApiController]
     public class HotelController : ControllerBase
     {
+
+        private string getClientIdFromToken(string token)
+        {
+
+            var handler = new JwtSecurityTokenHandler();
+            var jsonToken = handler.ReadToken(token);
+            var tokenS = jsonToken as JwtSecurityToken;
+            var claims = tokenS.Claims.Select(claim => (claim.Type, claim.Value)).ToList();
+            string userId = "";
+            for (int i = 0; i < claims.Count; i++)
+            {
+                if (claims[i].Type == "sub")
+                {
+                    userId = claims[i].Value;
+                }
+            }
+            System.Diagnostics.Debug.WriteLine("EL ID DEL TOKEN ES " + userId);
+            return userId;
+        }
+
         [Authorize]
         [HttpPost]
         [Route("create")]
@@ -22,7 +44,29 @@ namespace ApiHoteleria.Controllers
             int statusCode = (int)HttpStatusCode.OK;
             try
             {
+
                 IActionResult response = Unauthorized();
+
+
+                var authorization = Request.Headers[HeaderNames.Authorization];
+
+                string clientId = getClientIdFromToken(authorization.ToString().Replace("Bearer ", ""));
+
+                if (clientId == null)
+                {
+                    statusCode = (int)HttpStatusCode.Forbidden;
+                    message = "Invalid token";
+                    return StatusCode((int)HttpStatusCode.Forbidden, new { statusCode, message });
+                }
+
+                var user = connection.Query<Users>("SELECT * FROM user WHERE User_ID = @user_id AND Role = 'Super Admin'", new { user_id = clientId }).FirstOrDefault();
+
+                if (user == null)
+                {
+                    statusCode = (int)HttpStatusCode.NotFound;
+                    message = "User not found";
+                    return StatusCode((int)HttpStatusCode.NotFound, new { statusCode, message });
+                }
 
                 // valida si vienen los campos necesarios para la creacion del hotel
                 if (hotel.Name== null || hotel.Address==null || hotel.Phone== null || hotel.Email==null)
@@ -72,6 +116,27 @@ namespace ApiHoteleria.Controllers
             try
             {
                 IActionResult response = Unauthorized();
+
+                var authorization = Request.Headers[HeaderNames.Authorization];
+
+                string clientId = getClientIdFromToken(authorization.ToString().Replace("Bearer ", ""));
+
+                if (clientId == null)
+                {
+                    statusCode = (int)HttpStatusCode.Forbidden;
+                    message = "Invalid token";
+                    return StatusCode((int)HttpStatusCode.Forbidden, new { statusCode, message });
+                }
+
+                var user = connection.Query<Users>("SELECT * FROM user WHERE User_ID = @user_id AND Role = 'Super Admin'", new { user_id = clientId }).FirstOrDefault();
+
+                if (user == null)
+                {
+                    statusCode = (int)HttpStatusCode.NotFound;
+                    message = "User not found";
+                    return StatusCode((int)HttpStatusCode.NotFound, new { statusCode, message });
+                }
+
 
                 // valida si vienen los campos necesarios para la creacion del hotel
                 if (hotel.Name == null || hotel.Address == null || hotel.Phone == null ||

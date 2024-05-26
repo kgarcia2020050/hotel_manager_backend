@@ -2,12 +2,14 @@
 {
     public class Persons
     {
-        public int person_id { get; set; }
-        public int user_id { get; set; }
-        public string name { get; set; }    
-        public string identity_document { get; set; }
-        public string phone { get; set; }
-        public string email { get; set; }
-        public string address { get; set; }
+        public int Person_ID { get; set; }
+        public int User_ID { get; set; }
+        public string Name { get; set; }    
+        public string Identity_Document { get; set; }
+        public string Phone { get; set; }
+        public string Email { get; set; }
+        public string Address { get; set; }
+        public string Role { get; set; }
+        public string Hotel_Name { get; set; }
     }
 }
