@@ -54,7 +54,7 @@ namespace ApiHoteleria.Controllers
                     var user = AuthenticateUser(existingUser, login);
                     if (user != null)
                     {
-                        return Ok(new {statusCode, message, token = GenerateJSONWebToken(existingUser) });
+                        return Ok(new {statusCode, message, token = GenerateJSONWebToken(existingUser), existingUser });
                     }
                 }
                 else
