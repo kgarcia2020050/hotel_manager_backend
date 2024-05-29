@@ -10,7 +10,7 @@ using System.Net;
 
 namespace ApiHoteleria.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/v1/[controller]")]
     [ApiController]
     public class Types : ControllerBase
     {

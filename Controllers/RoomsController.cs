@@ -11,7 +11,7 @@ using System.Net.NetworkInformation;
 
 namespace ApiHoteleria.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/v1/[controller]")]
     [ApiController]
     public class RoomsController : ControllerBase
     {

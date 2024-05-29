@@ -15,7 +15,7 @@ using System.Text;
 
 namespace ApiHoteleria.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/v1/[controller]")]
     [ApiController]
     public class UsersController : ControllerBase
     {

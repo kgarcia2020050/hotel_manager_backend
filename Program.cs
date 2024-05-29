@@ -7,14 +7,17 @@ using MySqlConnector;
 var builder = WebApplication.CreateBuilder(args);
 
 
-builder.Services.AddCors(options => options.AddPolicy(name: "Frontend",
-    policy =>
-    {
-        policy.WithOrigins("http://localhost:4200")
-            .AllowAnyHeader()
-            .AllowAnyMethod();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAllOrigins",
+        builder =>
+        {
+            builder.AllowAnyOrigin()
+                   .AllowAnyMethod()
+                   .AllowAnyHeader();
+        });
+});
 
-    });
 
 builder.Services.AddControllers(options => options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true);
 builder.Services.AddTransient(x =>
@@ -59,7 +62,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseCors("Frontend");
+app.UseCors("AllowAllOrigins");
 
 app.UseAuthentication();
 app.UseAuthorization();
