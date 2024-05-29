@@ -51,13 +51,14 @@ namespace ApiHoteleria.Controllers
                 System.Diagnostics.Debug.WriteLine(existingUser.ToString());
 
                 var dataUser = existingUser;
-                dataUser.password = null;
 
                 if (BCrypt.Net.BCrypt.EnhancedVerify(login.password, existingUser.password))
                 {
                     var user = AuthenticateUser(existingUser, login);
                     if (user != null)
                     {
+                        dataUser.password = null;
+
                         return Ok(new {statusCode, message, token = GenerateJSONWebToken(existingUser), dataUser });
                     }
                 }
@@ -122,8 +123,18 @@ namespace ApiHoteleria.Controllers
                 }
 
                 login.password = BCrypt.Net.BCrypt.EnhancedHashPassword(login.password);
-                connection.Execute("INSERT INTO user(Username, Password, Role, hotel_id) VALUES(@username, @password, @role, @hotel_id)",
-                    new { login.username, login.password, login.role, login.hotel_id });
+
+                if(login.hotel_id == 0)
+                {
+                    connection.Execute("INSERT INTO user(Username, Password, Role) VALUES(@username, @password, @role)",
+                                           new { login.username, login.password, login.role });
+                }
+                else
+                {
+                    connection.Execute("INSERT INTO user(Username, Password, Role, hotel_id) VALUES(@username, @password, @role, @hotel_id)",
+                                           new { login.username, login.password, login.role, login.hotel_id });
+                }
+
 
                 int userId = connection.QuerySingle<int>("SELECT User_ID FROM user order by User_ID DESC LIMIT 1");
 
