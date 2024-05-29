@@ -40,20 +40,25 @@ namespace ApiHoteleria.Controllers
                 var existingUser = connection.Query<Users>("SELECT u.Role, u.User_ID, u.Username, u.Password, p.Email " +
                     "FROM user u INNER JOIN person p ON p.User_ID = u.User_ID WHERE p.Email " +
                     "= @email", new { login.email }).FirstOrDefault();
+
                 if (existingUser == null)
                 {
                     message = "User not found";
                     statusCode = (int)HttpStatusCode.NotFound;
                     return StatusCode((int)HttpStatusCode.NotFound, new {statusCode, message});
                 }
+
                 System.Diagnostics.Debug.WriteLine(existingUser.ToString());
+
+                var dataUser = existingUser;
+                dataUser.password = null;
 
                 if (BCrypt.Net.BCrypt.EnhancedVerify(login.password, existingUser.password))
                 {
                     var user = AuthenticateUser(existingUser, login);
                     if (user != null)
                     {
-                        return Ok(new {statusCode, message, token = GenerateJSONWebToken(existingUser), existingUser });
+                        return Ok(new {statusCode, message, token = GenerateJSONWebToken(existingUser), dataUser });
                     }
                 }
                 else
@@ -105,8 +110,20 @@ namespace ApiHoteleria.Controllers
                     return StatusCode((int)HttpStatusCode.NotFound, new {statusCode, message});
                 }
 
+
+                var existingHotel = connection.Query<int>("SELECT Hotel_ID FROM hotel WHERE Hotel_ID" +
+                                       "= @hotel_id", new { login.hotel_id }).FirstOrDefault();
+
+                if (existingHotel == 0)
+                {
+                    statusCode = (int)HttpStatusCode.NotFound;
+                    message = "Hotel not found!";
+                    return StatusCode((int)HttpStatusCode.NotFound, new {statusCode, message});
+                }
+
                 login.password = BCrypt.Net.BCrypt.EnhancedHashPassword(login.password);
-                connection.Execute("INSERT INTO user(Username, Password, Role) VALUES(@username, @password, @role)", new { login.username, login.password, login.role });
+                connection.Execute("INSERT INTO user(Username, Password, Role, hotel_id) VALUES(@username, @password, @role, @hotel_id)",
+                    new { login.username, login.password, login.role, login.hotel_id });
 
                 int userId = connection.QuerySingle<int>("SELECT User_ID FROM user order by User_ID DESC LIMIT 1");
 

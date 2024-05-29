@@ -91,7 +91,8 @@ namespace ApiHoteleria.Controllers
                     return StatusCode((int)HttpStatusCode.NotFound,new {statusCode, message});
                 }
 
-                connection.Execute("INSERT INTO hotel(Name, Address, Phone, Email) VALUES(@name, @address, @phone, @email)", new { hotel.Name, hotel.Address, hotel.Phone, hotel.Email });
+                connection.Execute("INSERT INTO hotel(Name, Address, Phone, Email) VALUES(@name, @address, @phone, @email)",
+                    new { hotel.Name, hotel.Address, hotel.Phone, hotel.Email });
 
                 response = Ok(new {statusCode, message});
 
@@ -206,7 +207,7 @@ namespace ApiHoteleria.Controllers
 
                 IActionResult response = Unauthorized();
 
-                var hotels = connection.Query<Hotel>("SELECT * FROM hotel" ).ToList();
+                var hotels = connection.Query<Hotel>("SELECT * FROM hotel").ToList();
 
                 response = Ok(new {statusCode, message, hotels});
 

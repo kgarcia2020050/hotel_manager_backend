@@ -97,7 +97,8 @@ namespace ApiHoteleria.Controllers
                     return StatusCode((int)HttpStatusCode.Forbidden, new { statusCode, message });
                 }
 
-                var userReservation = connection.Query<Reservation>("SELECT * FROM reservation WHERE Client_ID = @client_id AND Status = 'Pendiente'", new { client_id = clientId }).ToList();
+                var userReservation = connection.Query<Reservation>("SELECT * FROM reservation WHERE Client_ID = @client_id AND Status = 'Pendiente'", 
+                    new { client_id = clientId }).ToList();
 
                 DateTime fechaUno = Convert.ToDateTime(hotel.Check_In_Date).Date;
                 DateTime fechaDos = Convert.ToDateTime(hotel.Check_Out_Date).Date;
@@ -130,7 +131,8 @@ namespace ApiHoteleria.Controllers
                         new { total_cost = newCost, reservation_id = userReservation[0].Reservation_ID });
                 }
 
-                connection.Execute("INSERT INTO reservation_detail (Reservation_ID, Check_In_Date, Check_Out_Date, Room_ID) VALUES (@reservation_id, @check_in_date, @check_out_date, @room_id)",
+                connection.Execute("INSERT INTO reservation_detail (Reservation_ID, Check_In_Date, Check_Out_Date, Room_ID) VALUES (@reservation_id, " +
+                    "@check_in_date, @check_out_date, @room_id)",
                                        new { reservation_id = reservationId, hotel.Check_In_Date, hotel.Check_Out_Date, hotel.Room_ID });
 
                 response = Ok(new { statusCode, message });
@@ -190,14 +192,14 @@ namespace ApiHoteleria.Controllers
                     return StatusCode((int)HttpStatusCode.NotFound, new { statusCode, message });
                 }
 
-                var userReservation = connection.Query<Reservation>("SELECT * FROM reservation WHERE Client_ID = @client_id AND Status = 'Pendiente'", new { client_id = clientId }).ToList();
+                var userReservation = connection.Query<Reservation>("SELECT * FROM reservation WHERE Client_ID = @client_id AND Status = 'Pendiente'",
+                    new { client_id = clientId }).ToList();
 
                 if (userReservation == null || userReservation.Count == 0)
                 {
                     statusCode = (int)HttpStatusCode.NotFound;
                     message = "Reservation not found";
                     return StatusCode((int)HttpStatusCode.NotFound, new { statusCode, message });
-
                 }
 
 
@@ -288,6 +290,17 @@ namespace ApiHoteleria.Controllers
                     statusCode = (int)HttpStatusCode.Forbidden;
                     message = "Incomplete request";
                     return StatusCode((int)HttpStatusCode.Forbidden, new { statusCode, message });
+                }
+
+
+               var reservation = connection.Query<Reservations>("SELECT Room_ID FROM reservation_detail WHERE Reservation_ID = @reservation_id", new { reservation_id }).ToList();
+
+                if (reservation.Count > 0)
+                {
+                       for (int i = 0; i < reservation.Count; i++)
+                    {
+                        connection.Execute("UPDATE room SET Status = 'Disponible' WHERE Room_ID = @room_id", new { room_id = reservation[i].Room_ID });
+                    }
                 }
 
                 connection.Execute("DELETE FROM reservation_detail WHERE Reservation_ID = @reservation_id", new { reservation_id });

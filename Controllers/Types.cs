@@ -81,8 +81,8 @@ namespace ApiHoteleria.Controllers
                     return response;
                 }
 
-
-                connection.Execute("INSERT INTO room_type(Description, Capacity, Price_Per_Night) VALUES (@description, @capacity, @price)", new { description = type.Description, capacity = type.Capacity, price = type.Price_Per_Night });
+                connection.Execute("INSERT INTO room_type(Description, Capacity, Price_Per_Night) VALUES (@description, @capacity, @price)",
+                    new { description = type.Description, capacity = type.Capacity, price = type.Price_Per_Night });
 
 
                 response = Ok(new { statusCode, message });

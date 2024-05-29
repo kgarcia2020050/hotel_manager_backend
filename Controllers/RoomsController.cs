@@ -75,6 +75,7 @@ namespace ApiHoteleria.Controllers
             {
                 IActionResult response = Unauthorized();
 
+
                 if (room.Hotel_ID == 0 || room.Type_ID == 0 || room.Room_Number == null || room.Status == null)
                 {
                     message = "Please fill all fields";
@@ -84,7 +85,29 @@ namespace ApiHoteleria.Controllers
                 }
 
 
-                connection.Execute("INSERT INTO room(Hotel_ID, Type_ID, Room_Number, Status) VALUES (@hotel_ID, @type_ID, @room_Number, @status)", new { hotel_ID = room.Hotel_ID, Type_ID = room.Type_ID, Room_Number = room.Room_Number, Status = room.Status });
+                var existingHotel = connection.Query<int>("SELECT * FROM hotel WHERE Hotel_ID = @id", new { id = room.Hotel_ID }).FirstOrDefault();
+
+                if (existingHotel == 0)
+                {
+                    message = "Hotel not found";
+                    statusCode = (int)HttpStatusCode.NotFound;
+                    response = StatusCode((int)HttpStatusCode.NotFound, new { statusCode, message });
+                    return response;
+                }
+
+                var existingType = connection.Query<int>("SELECT * FROM room_type WHERE Type_ID = @id", new { id = room.Type_ID }).FirstOrDefault();
+
+                if (existingType == 0)
+                {
+                    message = "Room type not found";
+                    statusCode = (int)HttpStatusCode.NotFound;
+                    response = StatusCode((int)HttpStatusCode.NotFound, new { statusCode, message });
+                    return response;
+                }
+
+
+                connection.Execute("INSERT INTO room(Hotel_ID, Type_ID, Room_Number, Status) VALUES (@hotel_ID, @type_ID, @room_Number, @status)",
+                    new { hotel_ID = room.Hotel_ID,  room.Type_ID,  room.Room_Number,  room.Status });
 
 
                 response = Ok(new { statusCode, message });
@@ -129,8 +152,32 @@ namespace ApiHoteleria.Controllers
                     return response;
                 }
 
+
+
+                var existingHotel = connection.Query<int>("SELECT * FROM hotel WHERE Hotel_ID = @id", new { id = room.Hotel_ID }).FirstOrDefault();
+
+                if (existingHotel == 0)
+                {
+                    message = "Hotel not found";
+                    statusCode = (int)HttpStatusCode.NotFound;
+                    response = StatusCode((int)HttpStatusCode.NotFound, new { statusCode, message });
+                    return response;
+                }
+
+                var existingType = connection.Query<int>("SELECT * FROM room_type WHERE Type_ID = @id", new { id = room.Type_ID }).FirstOrDefault();
+
+                if (existingType == 0)
+                {
+                    message = "Room type not found";
+                    statusCode = (int)HttpStatusCode.NotFound;
+                    response = StatusCode((int)HttpStatusCode.NotFound, new { statusCode, message });
+                    return response;
+                }
+
+
+
                 connection.Execute("UPDATE room SET Hotel_ID = @hotel_ID, Type_ID = @type_ID, Room_Number = @room_Number , Status = @status WHERE Room_ID = @id",
-                    new { Hotel_ID = room.Hotel_ID, Type_ID = room.Type_ID, Room_Number = room.Room_Number, Status = room.Status, id = room.Room_ID });
+                    new {  room.Hotel_ID,  room.Type_ID,  room.Room_Number, room.Status, id = room.Room_ID });
 
                 response = Ok(new { statusCode, message });
 
@@ -157,7 +204,9 @@ namespace ApiHoteleria.Controllers
             try
             {
                 IActionResult response = Unauthorized();
-                var room = connection.Query<Rooms>("SELECT * FROM room WHERE Room_ID = @id", new { id }).ToList();
+                var room = connection.Query<Rooms>("select * from reservation_detail rd inner join " +
+                    "reservation r on r.Reservation_ID = rd.Reservation_ID where rd.Room_ID = @id " +
+                    "and r.Status <> 'Pendiente' and r.Status <> 'Confirmada'", new { id }).ToList();
 
                 if (room.Count > 0)
                 {
