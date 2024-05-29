@@ -28,7 +28,6 @@ namespace ApiHoteleria.Controllers
         }
 
         [HttpPost]
-        [EnableCors("AllowAllOrigins")]
         [Route("login")]
         public IActionResult Login([FromBody] Login login, [FromServices] MySqlConnection connection)
         {

@@ -12,7 +12,6 @@ using System.Net;
 
 namespace ApiHoteleria.Controllers
 {
-    [EnableCors("AllowAllOrigins")]
     [Route("api/[controller]")]
     [ApiController]
     public class HotelController : ControllerBase
