@@ -5,6 +5,20 @@ using Microsoft.IdentityModel.Tokens;
 using MySqlConnector;
 
 var builder = WebApplication.CreateBuilder(args);
+
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAllOrigins",
+        builder =>
+        {
+            builder.AllowAnyOrigin()
+                   .AllowAnyMethod()
+                   .AllowAnyHeader();
+        });
+});
+
+
 builder.Services.AddControllers(options => options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true);
 builder.Services.AddTransient(x =>
   new MySqlConnection(builder.Configuration.GetConnectionString("Default")));
@@ -47,6 +61,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors("AllowAllOrigins");
 
 app.UseAuthentication();
 app.UseAuthorization();

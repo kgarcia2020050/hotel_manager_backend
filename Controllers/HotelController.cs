@@ -2,6 +2,7 @@
 using ApiHoteleria.Models;
 using Dapper;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
@@ -11,6 +12,7 @@ using System.Net;
 
 namespace ApiHoteleria.Controllers
 {
+    [EnableCors("AllowAllOrigins")]
     [Route("api/[controller]")]
     [ApiController]
     public class HotelController : ControllerBase

@@ -3,6 +3,7 @@ using ApiHoteleria.Models;
 using ApiHoteleria.Services.Interfaces;
 using Dapper;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -27,6 +28,7 @@ namespace ApiHoteleria.Controllers
         }
 
         [HttpPost]
+        [EnableCors("AllowAllOrigins")]
         [Route("login")]
         public IActionResult Login([FromBody] Login login, [FromServices] MySqlConnection connection)
         {
@@ -36,7 +38,7 @@ namespace ApiHoteleria.Controllers
             {
                 IActionResult response = Unauthorized();
 
-                var existingUser = connection.Query<Users>("SELECT u.User_ID, u.Username, u.Password, p.Email " +
+                var existingUser = connection.Query<Users>("SELECT u.Role, u.User_ID, u.Username, u.Password, p.Email " +
                     "FROM user u INNER JOIN person p ON p.User_ID = u.User_ID WHERE p.Email " +
                     "= @email", new { login.email }).FirstOrDefault();
                 if (existingUser == null)
