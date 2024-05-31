@@ -197,12 +197,14 @@ namespace ApiHoteleria.Controllers
             {
                 IActionResult response = Unauthorized();
                 List<Persons> users = new List<Persons>();
-                if(hotel_id == 0)
+                if (hotel_id == 0)
                 {
-                    users = connection.Query<Persons>("SELECT p.*, u.Role " +
+                    users = connection.Query<Persons>("SELECT p.*, u.Role, h.Name " +
                         "FROM person p " +
                         "INNER JOIN user u " +
-                        "ON u.User_ID = p.User_ID").ToList();
+                        "ON u.User_ID = p.User_ID " +
+                        "INNER JOIN hotel h " +
+                        "ON h.Hotel_ID = u.hotel_id").ToList();
                 }
                 else
                 {
