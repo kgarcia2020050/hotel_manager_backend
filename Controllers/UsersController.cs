@@ -199,11 +199,11 @@ namespace ApiHoteleria.Controllers
                 List<Persons> users = new List<Persons>();
                 if (hotel_id == 0)
                 {
-                    users = connection.Query<Persons>("SELECT p.*, u.Role, h.Name " +
+                    users = connection.Query<Persons>("SELECT p.*, u.Role, h.Name as Hotel_Name " +
                         "FROM person p " +
                         "INNER JOIN user u " +
                         "ON u.User_ID = p.User_ID " +
-                        "INNER JOIN hotel h " +
+                        "LEFT JOIN hotel h " +
                         "ON h.Hotel_ID = u.hotel_id").ToList();
                 }
                 else
