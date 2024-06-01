@@ -8,6 +8,7 @@
         public string role { get; set; }
 
         public string email { get; set; }
+        public int hotel_id { get; set; }
 
         public Users()
         {
@@ -15,12 +16,13 @@
         }
 
 
-        public Users(string username, string password, string role, string email)
+        public Users(string username, string password, string role, string email, int hotel_id)
         {
             this.username = username;
             this.password = password;
             this.role = role;
             this.email = email;
+            this.hotel_id = hotel_id;
         }
 
     }

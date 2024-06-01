@@ -4,8 +4,10 @@ using Dapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Net.Http.Headers;
 using MySqlConnector;
 using System.Collections;
+using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.NetworkInformation;
 
@@ -15,6 +17,27 @@ namespace ApiHoteleria.Controllers
     [ApiController]
     public class RoomsController : ControllerBase
     {
+
+        private string getClientIdFromToken(string token)
+        {
+
+            var handler = new JwtSecurityTokenHandler();
+            var jsonToken = handler.ReadToken(token);
+            var tokenS = jsonToken as JwtSecurityToken;
+            var claims = tokenS.Claims.Select(claim => (claim.Type, claim.Value)).ToList();
+            string userId = "";
+            for (int i = 0; i < claims.Count; i++)
+            {
+                if (claims[i].Type == "sub")
+                {
+                    userId = claims[i].Value;
+                }
+            }
+            System.Diagnostics.Debug.WriteLine("EL ID DEL TOKEN ES " + userId);
+            return userId;
+        }
+
+
         [Authorize]
         [HttpGet]
         [Route("Get")]
@@ -32,15 +55,49 @@ namespace ApiHoteleria.Controllers
 
                 List<Rooms> data = null;
 
+                var authorization = Request.Headers[HeaderNames.Authorization];
+
+                string clientId = getClientIdFromToken(authorization.ToString().Replace("Bearer ", ""));
+
+                if (clientId == null)
+                {
+                    statuscode = (int)HttpStatusCode.Forbidden;
+                    message = "Invalid token";
+                    return StatusCode((int)HttpStatusCode.Forbidden, new { statuscode, message });
+                }
+
+                var user = connection.Query<Users>("SELECT * FROM user WHERE User_ID = @user_id", new { user_id = clientId }).FirstOrDefault();
+
+                if (user == null)
+                {
+                    statuscode = (int)HttpStatusCode.NotFound;
+                    message = "User not found";
+                    return StatusCode((int)HttpStatusCode.NotFound, new { statuscode, message });
+                }
+
+
+                int hotelId = user.hotel_id;
+
                 if (id == 0)
                 {
-                    var types = connection.Query<Rooms>("SELECT * FROM room").ToList();
-                    data = types;
 
+                    if(hotelId == 0)
+                    {
+                        var types = connection.Query<Rooms>("SELECT r.*, rt.Capacity, rt.Price_Per_Night FROM room r INNER JOIN room_type rt " +
+        "ON rt.Type_ID = r.Type_ID").ToList();
+                        data = types;
+                    }
+                    else
+                    {
+                        var types = connection.Query<Rooms>("SELECT r.*, rt.Capacity, rt.Price_Per_Night FROM room r INNER JOIN room_type rt " +
+            "ON rt.Type_ID = r.Type_ID WHERE r.Hotel_ID = @id",new { id = hotelId }).ToList();
+                        data = types;
+                    }
                 }
                 else
                 {
-                    var type = connection.Query<Rooms>("SELECT * FROM room WHERE Room_ID = @id", new { id }).ToList();
+                    var type = connection.Query<Rooms>("SELECT r.*, rt.Capacity, rt.Price_Per_Night FROM room r INNER JOIN room_type rt " +
+                        "ON rt.Type_ID = r.Type_ID WHERE r.Room_ID = @id", new { id }).ToList();
                     data = type;
                 }
 
@@ -76,7 +133,7 @@ namespace ApiHoteleria.Controllers
                 IActionResult response = Unauthorized();
 
 
-                if (room.Hotel_ID == 0 || room.Type_ID == 0 || room.Room_Number == null || room.Status == null)
+                if (room.Type_ID == 0 || room.Room_Number == null || room.Status == null)
                 {
                     message = "Please fill all fields";
                     statusCode = (int)HttpStatusCode.PreconditionFailed;
@@ -84,8 +141,27 @@ namespace ApiHoteleria.Controllers
                     return response;
                 }
 
+                var authorization = Request.Headers[HeaderNames.Authorization];
 
-                var existingHotel = connection.Query<int>("SELECT * FROM hotel WHERE Hotel_ID = @id", new { id = room.Hotel_ID }).FirstOrDefault();
+                string clientId = getClientIdFromToken(authorization.ToString().Replace("Bearer ", ""));
+
+                if (clientId == null)
+                {
+                    statusCode = (int)HttpStatusCode.Forbidden;
+                    message = "Invalid token";
+                    return StatusCode((int)HttpStatusCode.Forbidden, new { statusCode, message });
+                }
+
+                var user = connection.Query<Users>("SELECT * FROM user WHERE User_ID = @user_id", new { user_id = clientId }).FirstOrDefault();
+
+                if (user == null)
+                {
+                    statusCode = (int)HttpStatusCode.NotFound;
+                    message = "User not found";
+                    return StatusCode((int)HttpStatusCode.NotFound, new { statusCode, message });
+                }
+
+                var existingHotel = connection.Query<int>("SELECT * FROM hotel WHERE Hotel_ID = @id", new { id = user.hotel_id}).FirstOrDefault();
 
                 if (existingHotel == 0)
                 {
@@ -105,9 +181,18 @@ namespace ApiHoteleria.Controllers
                     return response;
                 }
 
+                var existingRoom = connection.Query<int>("SELECT * FROM room WHERE Room_Number = @room_number", new { room_number = room.Room_Number }).FirstOrDefault();
+
+                if (existingRoom != 0)
+                {
+                    message = "Room already exists";
+                    statusCode = (int)HttpStatusCode.PreconditionFailed;
+                    response = StatusCode((int)HttpStatusCode.PreconditionFailed, new { statusCode, message });
+                    return response;
+                }
 
                 connection.Execute("INSERT INTO room(Hotel_ID, Type_ID, Room_Number, Status) VALUES (@hotel_ID, @type_ID, @room_Number, @status)",
-                    new { hotel_ID = room.Hotel_ID,  room.Type_ID,  room.Room_Number,  room.Status });
+                    new { hotel_ID = user.hotel_id,  room.Type_ID,  room.Room_Number,  room.Status });
 
 
                 response = Ok(new { statusCode, message });
@@ -152,18 +237,6 @@ namespace ApiHoteleria.Controllers
                     return response;
                 }
 
-
-
-                var existingHotel = connection.Query<int>("SELECT * FROM hotel WHERE Hotel_ID = @id", new { id = room.Hotel_ID }).FirstOrDefault();
-
-                if (existingHotel == 0)
-                {
-                    message = "Hotel not found";
-                    statusCode = (int)HttpStatusCode.NotFound;
-                    response = StatusCode((int)HttpStatusCode.NotFound, new { statusCode, message });
-                    return response;
-                }
-
                 var existingType = connection.Query<int>("SELECT * FROM room_type WHERE Type_ID = @id", new { id = room.Type_ID }).FirstOrDefault();
 
                 if (existingType == 0)
@@ -174,10 +247,19 @@ namespace ApiHoteleria.Controllers
                     return response;
                 }
 
+                var existingRoom = connection.Query<int>("SELECT * FROM room WHERE Room_Number = @room_number " +
+                    "and Room_ID <> @id", new { room_number = room.Room_Number, id = room.Room_ID }).FirstOrDefault();
 
+                if (existingRoom != 0)
+                {
+                    message = "Room already exists";
+                    statusCode = (int)HttpStatusCode.PreconditionFailed;
+                    response = StatusCode((int)HttpStatusCode.PreconditionFailed, new { statusCode, message });
+                    return response;
+                }
 
-                connection.Execute("UPDATE room SET Hotel_ID = @hotel_ID, Type_ID = @type_ID, Room_Number = @room_Number , Status = @status WHERE Room_ID = @id",
-                    new {  room.Hotel_ID,  room.Type_ID,  room.Room_Number, room.Status, id = room.Room_ID });
+                connection.Execute("UPDATE room SET Type_ID = @type_ID, Room_Number = @room_Number , Status = @status WHERE Room_ID = @id",
+                    new {  room.Type_ID,  room.Room_Number, room.Status, id = room.Room_ID });
 
                 response = Ok(new { statusCode, message });
 
