@@ -112,14 +112,17 @@ namespace ApiHoteleria.Controllers
                 }
 
 
-                var existingHotel = connection.Query<int>("SELECT Hotel_ID FROM hotel WHERE Hotel_ID" +
+                if (login.hotel_id != 0)
+                {
+                    var existingHotel = connection.Query<int>("SELECT Hotel_ID FROM hotel WHERE Hotel_ID" +
                                        "= @hotel_id", new { login.hotel_id }).FirstOrDefault();
 
-                if (existingHotel == 0)
-                {
-                    statusCode = (int)HttpStatusCode.NotFound;
-                    message = "Hotel not found!";
-                    return StatusCode((int)HttpStatusCode.NotFound, new {statusCode, message});
+                    if (existingHotel == 0)
+                    {
+                        statusCode = (int)HttpStatusCode.NotFound;
+                        message = "Hotel not found!";
+                        return StatusCode((int)HttpStatusCode.NotFound, new { statusCode, message });
+                    }
                 }
 
                 login.password = BCrypt.Net.BCrypt.EnhancedHashPassword(login.password);
