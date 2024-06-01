@@ -37,7 +37,7 @@ namespace ApiHoteleria.Controllers
             {
                 IActionResult response = Unauthorized();
 
-                var existingUser = connection.Query<Users>("SELECT u.Role, u.User_ID, u.Username, u.Password, p.Email, h.Hotel_ID as hotel_id, h.Name as hotel_name " +
+                var existingUser = connection.Query<Users>("SELECT p.Person_ID, u.Role, u.User_ID, u.Username, u.Password, p.Email, h.Hotel_ID as hotel_id, h.Name as hotel_name " +
                     "FROM user u INNER JOIN person p ON p.User_ID = u.User_ID LEFT JOIN hotel h ON h.Hotel_ID = u.Hotel_ID WHERE p.Email " +
                     "= @email", new { login.email }).FirstOrDefault();
 
@@ -166,7 +166,8 @@ namespace ApiHoteleria.Controllers
         new Claim(JwtRegisteredClaimNames.UniqueName, userInfo.username),
         new Claim(JwtRegisteredClaimNames.Email, userInfo.email),
         new Claim(JwtRegisteredClaimNames.Sub, userInfo.user_id.ToString()),
-    };
+        new Claim(JwtRegisteredClaimNames.Jti,userInfo.Person_ID.ToString())
+    };  
             var jwtToken = new JwtSecurityToken(
                 claims: claims,
                 notBefore: DateTime.UtcNow,

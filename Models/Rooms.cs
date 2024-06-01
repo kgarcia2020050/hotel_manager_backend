@@ -11,6 +11,10 @@
         public int Capacity { get; set; }
         public string type { get; set; }
 
+        public DateTime Check_In_Date { get; set; }
+
+        public DateTime Check_Out_Date { get; set; }
+
         public Rooms()
         {
 

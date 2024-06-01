@@ -83,20 +83,20 @@ namespace ApiHoteleria.Controllers
 
                     if(hotelId == 0)
                     {
-                        var types = connection.Query<Rooms>("SELECT r.*, rt.Capacity, rt.Price_Per_Night FROM room r INNER JOIN room_type rt " +
+                        var types = connection.Query<Rooms>("SELECT r.*, rt.Capacity, rt.Price_Per_Night, rt.Description as type FROM room r INNER JOIN room_type rt " +
         "ON rt.Type_ID = r.Type_ID").ToList();
                         data = types;
                     }
                     else
                     {
-                        var types = connection.Query<Rooms>("SELECT r.*, rt.Capacity, rt.Price_Per_Night FROM room r INNER JOIN room_type rt " +
+                        var types = connection.Query<Rooms>("SELECT r.*, rt.Capacity, rt.Price_Per_Night, rt.Description as type FROM room r INNER JOIN room_type rt " +
             "ON rt.Type_ID = r.Type_ID WHERE r.Hotel_ID = @id",new { id = hotelId }).ToList();
                         data = types;
                     }
                 }
                 else
                 {
-                    var type = connection.Query<Rooms>("SELECT r.*, rt.Capacity, rt.Price_Per_Night FROM room r INNER JOIN room_type rt " +
+                    var type = connection.Query<Rooms>("SELECT r.*, rt.Capacity, rt.Price_Per_Night, rt.Description as type FROM room r INNER JOIN room_type rt " +
                         "ON rt.Type_ID = r.Type_ID WHERE r.Room_ID = @id", new { id }).ToList();
                     data = type;
                 }
