@@ -101,14 +101,6 @@ namespace ApiHoteleria.Controllers
                     data = type;
                 }
 
-
-                if (data.Count == 0)
-                {
-                    message = "No Rooms found";
-                    statuscode = (int)HttpStatusCode.NotFound;
-                    response = StatusCode((int)HttpStatusCode.NotFound, new { statuscode, message, data });
-                    return response;
-                }
                 response = Ok(new { statuscode, message, data });
                 return response;
 

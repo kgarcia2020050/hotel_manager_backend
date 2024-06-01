@@ -40,15 +40,6 @@ namespace ApiHoteleria.Controllers
                     data = type;
                 }
 
-
-                if (data.Count == 0)
-                {
-                    message = "No types found";
-                    statusCode = (int)HttpStatusCode.NotFound;
-                    response = StatusCode((int)HttpStatusCode.NotFound, new { statusCode, message, data });
-                    return response;
-                }
-
                 response = StatusCode((int)HttpStatusCode.OK, new { statusCode, message, data });
                 return response;
 

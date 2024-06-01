@@ -9,6 +9,7 @@
 
         public string email { get; set; }
         public int hotel_id { get; set; }
+        public string hotel_name { get; set; }
 
         public Users()
         {
