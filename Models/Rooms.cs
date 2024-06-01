@@ -8,13 +8,15 @@
         public string Room_Number { get; set; }
         public string Status { get; set; }
         public double Price_Per_Night { get; set; }
+        public int Capacity { get; set; }
+        public string type { get; set; }
 
         public Rooms()
         {
 
         }
 
-        public Rooms(int Room_ID, int Hotel_ID, int Type_ID, string Room_Number, string Status, double price_Per_Night)
+        public Rooms(int Room_ID, int Hotel_ID, int Type_ID, string Room_Number, string Status, double price_Per_Night, int capacity, string type)
         {
             this.Room_ID = Room_ID;
             this.Hotel_ID = Hotel_ID;
@@ -22,6 +24,8 @@
             this.Room_Number = Room_Number;
             this.Status = Status;
             Price_Per_Night = price_Per_Night;
+            Capacity = capacity;
+            this.type = type;
         }
     }
 }
