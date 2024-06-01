@@ -9,6 +9,7 @@ using MySqlConnector;
 using System.Collections.Specialized;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
+using System.Text.Json.Nodes;
 
 namespace ApiHoteleria.Controllers
 {
@@ -33,6 +34,43 @@ namespace ApiHoteleria.Controllers
             }
             System.Diagnostics.Debug.WriteLine("EL ID DEL TOKEN ES " + userId);
             return userId;
+        }
+
+
+        [Authorize]
+        [HttpGet]
+        [Route("getReservationsDetails")]
+        public IActionResult getReservationsDetails([FromServices] MySqlConnection connection)
+        {
+            try
+            {
+                IActionResult response = Unauthorized();
+                var reservatiosnResponse = connection.Query<string>("SELECT JSON_OBJECT( 'Reservation_ID', rs.Reservation_ID, 'Reservation_Status', rs.Status, 'Total_Cost'," +
+                    " rs.Total_Cost, 'Details', JSON_ARRAYAGG( JSON_OBJECT( 'Room_Number', r.Room_Number, 'Room_Status', r.Status, 'Type_Description'," +
+                    " rt.Description, 'Type_Capacity', rt.Capacity, 'Type_Price_Per_Night', rt.Price_Per_Night, 'Check_In_Date', rd.Check_In_Date, 'Check_Out_Date'," +
+                    " rd.Check_Out_Date ) ) ) AS Reservation_Details FROM reservation rs INNER JOIN reservation_detail rd " +
+                    "ON rd.Reservation_ID = rs.Reservation_ID INNER JOIN room r ON r.Room_ID = rd.Room_ID INNER JOIN room_type" +
+                    " rt ON rt.Type_ID = r.Type_ID INNER JOIN hotel h ON r.Hotel_ID = h.Hotel_ID GROUP BY rs.Reservation_ID");
+
+                if(reservatiosnResponse == null)
+                {
+                    return NotFound(new { statusCode = (int)HttpStatusCode.NotFound, message = "Reservations not found" });
+                }
+
+                response = Ok(new { statusCode = (int)HttpStatusCode.OK, data = reservatiosnResponse });
+
+                return response;
+            }
+            catch (Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine(e);
+                return BadRequest(
+                    new
+                    {
+                        statusCode = (int)HttpStatusCode.BadRequest,
+                        message = "An error has ocurred: " + e.Message
+                    });
+            }
         }
 
         [Authorize]
